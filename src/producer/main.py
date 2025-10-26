@@ -4,19 +4,20 @@ import sys
 import httpx
 from rstream import Producer
 
-import config
+from . import producer_config
+from .. import config
 
-from weather_client import WeatherClient
+from .weather_client import WeatherClient
 
 async def start_producer():    
-    print(f"\nProdutor '{config.CITY}' iniciando...")
+    print(f"\nProdutor '{producer_config.CITY}' iniciando...")
     print(f"Conectando a RabbitMQ no host {config.RABBITMQ_HOST}:{config.RABBITMQ_PORT}")
     print(f"Publicando no stream '{config.RABBITMQ_STREAM}'")
 
     try:
         async with httpx.AsyncClient() as http_client:
             
-            weather_service = WeatherClient(http_client, config.API_URL)
+            weather_service = WeatherClient(http_client, producer_config.API_URL)
             
             async with Producer(
                 host=config.RABBITMQ_HOST,
@@ -30,7 +31,7 @@ async def start_producer():
                     config.RABBITMQ_STREAM, exists_ok=True, arguments=stream_args
                 )
                 print(f"Stream '{config.RABBITMQ_STREAM}' pronto.")
-                print(f"Publicando dados a cada {config.INTERVALO_SEG}s.\n")
+                print(f"Publicando dados a cada {producer_config.INTERVALO_SEG}s.\n")
 
                 msg_count = 1
 
@@ -39,9 +40,9 @@ async def start_producer():
                         weather_data = await weather_service.fetch_current_weather()
                         
                         message = {
-                            "city": config.CITY,
-                            "latitude": config.LATITUDE,
-                            "longitude": config.LONGITUDE,
+                            "city": producer_config.CITY,
+                            "latitude": producer_config.LATITUDE,
+                            "longitude": producer_config.LONGITUDE,
                             **weather_data 
                         }
                         
@@ -53,18 +54,18 @@ async def start_producer():
                         msg_count += 1
 
                     except httpx.RequestError:
-                        print(f"[{config.CITY}] Falha ao buscar dados. Tentando novamente em {config.INTERVALO_SEG}s...")
+                        print(f"[{producer_config.CITY}] Falha ao buscar dados. Tentando novamente em {producer_config.INTERVALO_SEG}s...")
                     except Exception as e:
-                        print(f"[{config.CITY}] Erro inesperado no loop: {e}", file=sys.stderr)
+                        print(f"[{producer_config.CITY}] Erro inesperado no loop: {e}", file=sys.stderr)
                         await asyncio.sleep(30)
 
-                    await asyncio.sleep(config.INTERVALO_SEG)
+                    await asyncio.sleep(producer_config.INTERVALO_SEG)
 
     except ConnectionError as e:
         print(f"Erro fatal de conexão com RabbitMQ: {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
-        print(f"\nProdutor '{config.CITY}' encerrando...")
+        print(f"\nProdutor '{producer_config.CITY}' encerrando...")
     except Exception as e:
         print(f"Erro fatal inesperado: {e}", file=sys.stderr)
 

@@ -3,7 +3,7 @@ import json
 import sys
 from rstream import Consumer, OffsetType, ConsumerOffsetSpecification
 
-import config
+from .. import config
 
 async def on_message(message, message_context):
     try:
