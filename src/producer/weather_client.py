@@ -15,9 +15,9 @@ class WeatherClient:
             current_weather = api_data.get("current_weather", {})
             
             return {
-                "time": current_weather.get("time"),
-                "temperature": current_weather.get("temperature"),
-                "windspeed": current_weather.get("windspeed"),
+                "timestamp": current_weather.get("time"),
+                "temperature_c": current_weather.get("temperature"),
+                "wind_speed_kmh": current_weather.get("windspeed"),
                 "weathercode": current_weather.get("weathercode")
             }
         except httpx.RequestError as e:

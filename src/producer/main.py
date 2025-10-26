@@ -9,8 +9,8 @@ import config
 from weather_client import WeatherClient
 
 async def start_producer():    
-    print(f"Produtor '{config.CITY}' iniciando...")
-    print(f"Conectando a {config.RABBITMQ_HOST}:{config.RABBITMQ_PORT}")
+    print(f"\nProdutor '{config.CITY}' iniciando...")
+    print(f"Conectando a RabbitMQ no host {config.RABBITMQ_HOST}:{config.RABBITMQ_PORT}")
     print(f"Publicando no stream '{config.RABBITMQ_STREAM}'")
 
     try:
@@ -30,7 +30,7 @@ async def start_producer():
                     config.RABBITMQ_STREAM, exists_ok=True, arguments=stream_args
                 )
                 print(f"Stream '{config.RABBITMQ_STREAM}' pronto.")
-                print(f"Publicando dados a cada {config.INTERVALO_SEG}s.")
+                print(f"Publicando dados a cada {config.INTERVALO_SEG}s.\n")
 
                 msg_count = 1
 
@@ -49,7 +49,7 @@ async def start_producer():
 
                         await producer.send(stream=config.RABBITMQ_STREAM, message=mensagem_bytes)
                         
-                        print(f"[Msg {msg_count}] Publicado: {message}")
+                        print(f"\n[Msg {msg_count}] Publicado: {message}")
                         msg_count += 1
 
                     except httpx.RequestError:
