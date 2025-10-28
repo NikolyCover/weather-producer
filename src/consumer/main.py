@@ -1,62 +1,44 @@
 import asyncio
-import json
-import sys
-from rstream import Consumer, OffsetType, ConsumerOffsetSpecification
+from rstream import OffsetType, ConsumerOffsetSpecification
 
-from .. import config
+from .consumer_service import StreamConsumer
+from . import message_handlers
 
-async def on_message(message, message_context):
-    try:
-        data_str = message.decode('utf-8')
-        data = json.loads(data_str)
+def get_user_choice() -> tuple[ConsumerOffsetSpecification, callable]:
+    print("========================= Consumidor de Clima =========================")
+    print("[1] Feed em Tempo Real (Todas as cidades)")
+    print("[2] Histórico de uma cidade específica")
+    
+    while True:
+        choice = input("\nEscolha uma opção (1 ou 2): ").strip()
         
-        city = data.get("city", "N/A").upper()
-        temp = data.get("temperature_c", "N/A")
-        wind = data.get("wind_speed_kmh", "N/A")
-        
-        print(f"\n[{city}] {temp}°C, Vento: {wind} km/h")
-        
-    except json.JSONDecodeError:
-        print("[ERRO] Mensagem recebida não é um JSON válido.", file=sys.stderr)
-    except Exception as e:
-        print(f"[ERRO] Falha ao processar mensagem: {e}", file=sys.stderr)
-
-async def start_consumer():    
-    print("\nConsumidor em tempo real Iniciando...")
-    print(f"Conectando a RabbitMQ no host {config.RABBITMQ_HOST}:{config.RABBITMQ_PORT}")
-    print(f"Lendo do stream '{config.RABBITMQ_STREAM}' (apenas novas mensagens)")
-
-    try:
-        consumer = Consumer(
-            host=config.RABBITMQ_HOST,
-            port=config.RABBITMQ_PORT,
-            username=config.RABBITMQ_USER,
-            password=config.RABBITMQ_PASS
-        )
-        
-        offset_spec = ConsumerOffsetSpecification(OffsetType.NEXT)
-        
-        await consumer.subscribe(
-            stream=config.RABBITMQ_STREAM,
-            callback=on_message,
-            offset_specification=offset_spec
-        )
-        
-        print("\nAguardando novos dados...\n")
-        
-        while True:
-            await asyncio.sleep(3600)
+        if choice == '1':
+            offset = ConsumerOffsetSpecification(OffsetType.NEXT)
+            callback = message_handlers.create_realtime_handler()
+            return offset, callback
             
-    except ConnectionError as e:
-        print(f"Erro de conexão: {e}", file=sys.stderr)
-        sys.exit(1)
-    except KeyboardInterrupt:
-        print("\n\nEncerrando...")
-    except Exception as e:
-        print(f"Erro inesperado: {e}", file=sys.stderr)
+        elif choice == '2':
+            city = input("\nDigite o nome da cidade para filtrar (ex: Curitiba): ").strip()
+            if not city:
+                print("Nome da cidade não pode ser vazio.")
+                continue
+                
+            offset = ConsumerOffsetSpecification(OffsetType.FIRST)
+            callback = message_handlers.create_history_handler(city)
+            return offset, callback
+            
+        else:
+            print("Opção inválida. Tente novamente.")
+
+async def main():
+    offset_spec, callback_func = get_user_choice()
+    
+    consumer_service = StreamConsumer()
+    
+    await consumer_service.run(offset_spec, callback_func)
 
 if __name__ == "__main__":
     try:
-        asyncio.run(start_consumer())
+        asyncio.run(main())
     except KeyboardInterrupt:
-        pass
+        print("\nPrograma encerrado.")

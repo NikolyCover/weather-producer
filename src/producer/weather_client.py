@@ -15,11 +15,11 @@ class WeatherClient:
             current_weather = api_data.get("current_weather", {})
             
             return {
-                "timestamp": current_weather.get("time"),
+                "api_timestamp": current_weather.get("time"),
                 "temperature_c": current_weather.get("temperature"),
                 "wind_speed_kmh": current_weather.get("windspeed"),
                 "weathercode": current_weather.get("weathercode")
             }
         except httpx.RequestError as e:
-            print(f"[WeatherClient] Erro ao consultar API: {e}", file=sys.stderr)
+            print(f"Erro ao consultar API: {e}", file=sys.stderr)
             raise
